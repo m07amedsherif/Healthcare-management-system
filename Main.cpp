@@ -5,6 +5,7 @@
 #include <algorithm>
 using namespace std;
 
+// ================== File Helpers ==================
 vector<string> loadRecords(const string& filename) {
     vector<string> records;
     ifstream file(filename);
@@ -19,25 +20,21 @@ vector<string> loadRecords(const string& filename) {
         if (!line.empty())
             records.push_back(line);
     }
-
     return records;
 }
 
 void saveRecordsToFile(const string& filename, const vector<string>& records) {
     ofstream file(filename, ios::trunc);
-
     if (!file) {
         cout << "Error writing to " << filename << "!\n";
         return;
     }
-
-    for (const string& rec : records) {
-        file << rec << "\n";   // write each record as a full line
-    }
-
+    for (const string& rec : records)
+        file << rec << "\n";
     file.close();
 }
 
+// ================== Index Structures ==================
 struct IndexEntry {
     string id;
     int vecIndex;
@@ -46,17 +43,14 @@ struct IndexEntry {
 class PrimaryIndex {
 private:
     string indexfile;
-    vector<string>* records;     // pointer to the vector of records
+    vector<string>* records;
 
     int binarySearch(const string& key) {
         int low = 0, high = indexList.size() - 1;
-
         while (low <= high) {
             int mid = (low + high) / 2;
-
             if (indexList[mid].id == key)
                 return mid;
-
             if (indexList[mid].id < key)
                 low = mid + 1;
             else
@@ -73,44 +67,19 @@ public:
 
     void buildIndex() {
         indexList.clear();
-
         for (int i = 0; i < records->size(); i++) {
             string line = (*records)[i];
             stringstream ss(line);
-            string code, id, name, addr;
-
-            getline(ss, code, '|');
+            string id;
             getline(ss, id, '|');
-
-            indexList.push_back({ id, i });  // store vector index
+            id.erase(remove_if(id.begin(), id.end(), ::isspace), id.end());
+            indexList.push_back({ id, i });
         }
-
-        // Sort by ID
         sort(indexList.begin(), indexList.end(),
-            [](const IndexEntry& a, const IndexEntry& b) {
-                return a.id < b.id;
-            });
-
+             [](const IndexEntry& a, const IndexEntry& b) {
+                 return a.id < b.id;
+             });
         saveIndex();
-    }
-
-    void loadIndex() {
-        ifstream idx(indexfile);
-        if (!idx) {
-            cout << "Index file missing!\n";
-            return;
-        }
-
-        indexList.clear();
-        string line, id, idxStr;
-
-        while (getline(idx, line)) {
-            stringstream ss(line);
-            getline(ss, id, '|');
-            getline(ss, idxStr);
-            indexList.push_back({ id, stoi(idxStr) });
-        }
-        idx.close();
     }
 
     void saveIndex() {
@@ -119,38 +88,88 @@ public:
             cout << "Error writing " << indexfile << "\n";
             return;
         }
-
-        for (const auto& e : indexList) {
+        for (const auto& e : indexList)
             idx << e.id << "|" << e.vecIndex << "\n";
-        }
         idx.close();
     }
 
-    // Returns vector index, NOT file offset
     int positionInVec(const string& keyID) {
         int pos = binarySearch(keyID);
         if (pos == -1) return -1;
         return indexList[pos].vecIndex;
     }
 
-    // Return the actual record string
-    string extractRecord(const string& keyID) {
-        int vecIndex = positionInVec(keyID);
-        if (vecIndex < 0 || vecIndex >= records->size())
-            return "Record not found";
-
-        return (*records)[vecIndex];
+    void updateIndex() {
+        buildIndex();
     }
 };
 
+// ================== Doctor Class ==================
+class Doctor {
+private:
+    string filename;
+    string indexfile;
+    vector<string> records;
+    PrimaryIndex* index;
+
+public:
+    Doctor(string file, string idx) : filename(file), indexfile(idx) {
+        records = loadRecords(filename);
+        index = new PrimaryIndex(indexfile, records);
+        index->buildIndex();
+    }
+
+    void insertDoctor(const string& id, const string& name, const string& specialty) {}
+
+    void updateDoctor(const string& id, const string& newName, const string& newSpec) {}
+
+    void deleteDoctor(const string& id) {}
+
+    void viewDoctor(const string& id) {}
+};
+
+// ================== Appointment Class ==================
+class Appointment {
+private:
+    string filename;
+    string indexfile;
+    vector<string> records;
+    PrimaryIndex* index;
+
+public:
+    Appointment(string file, string idx) : filename(file), indexfile(idx) {
+        records = loadRecords(filename);
+        index = new PrimaryIndex(indexfile, records);
+        index->buildIndex();
+    }
+
+    void insertAppointment(const string& id, const string& docID,
+                           const string& date, const string& patientID) {}
+
+    void updateAppointment(const string& id, const string& newDoc,
+                           const string& newDate, const string& newPatient) {}
+
+    void deleteAppointment(const string& id) {}
+
+    void viewAppointment(const string& id) {}
+};
+
+// ================== Main ==================
 int main() {
-    vector<string> recs = loadRecords("appointments.txt");
+    Doctor d("doctors.txt", "DocIndexfile.txt");
+    Appointment a("appointments.txt", "AppointmentsIndexfile.txt");
 
-    // modify something (example)
-    recs.push_back("014 |09|13 sep|09");
+    // Examples
+    d.insertDoctor("Dr. Ali", "Cardiology");
+    d.updateDoctor("05", "Dr. Ali Hassan", "Cardiology");
+    d.deleteDoctor("01");
+    d.viewDoctor("01");
 
-    // save back
-    saveRecordsToFile("appointments.txt", recs);
+    a.insertAppointment("10 Nov", "P007");
+    a.updateAppointment("07" ,"12 Nov", "P010");
+    a.deleteAppointment("01");
+    a.viewAppointment("01");
 
-    cout << "File updated successfully!\n";
+    cout << "Done.\n";
+    return 0;
 }
