@@ -1,9 +1,0 @@
-013 |01|Ali|Giza
-023 |02|Ahmed Hassan|Cairo
-035 |03|Mohamed Sherif|1 Sherif Street
-024 |04|Sara Ali|Alexandria
-026 |05|Yousef Ibrahim|Dokki
-022 |06|Mai Said|Mansoura
-023 |07|Omar Khaled|Faisal
-031 |08|Hassan Adel|6 October City
-040 |09|New Doctor|New City
